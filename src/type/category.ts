@@ -3,22 +3,24 @@ export type Category = {
 
   externalId?: string;
 
-  name?: string;
+  name: string;
 
   description?: string;
 
-  image?: string;
+  imageUrl?: string;
 
   visible?: boolean;
 
   displayOrder?: number;
 
-  path?: string;
-
+  parentPath?: string;
+  fullPath: string;
   depth?: number;
-
+  parentId?: string;
   parentCategory?: any;
 
+  descendantCount: number;
+  hierarchy: string []; // 仅用于前端展示，保存分类层级，使用fullPath的‘/’来进行分割成id的数组
   subCategories?: Category[];
 }
 // export interface CategoryProductXref {

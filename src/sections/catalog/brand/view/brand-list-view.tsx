@@ -27,22 +27,25 @@ import BrandQuickNewEditForm from '../brand-quick-new-edit-form';
 
 export default function BrandListView() {
 
+  const settings = useSettingsContext();
+
   const quickNewBrand = useBoolean();
 
   const table = useTable({ defaultRowsPerPage: 10 });
 
-  const settings = useSettingsContext();
-
   const [brandListData, setBrandListData] = useState<Brand[]>([]);
 
-  const fetchData = async (pageNumber = 0, pageSize = 10) => {
-    axios.get(`${endpoints.brand}`, { params: { pageNumber, pageSize } })
-      .then(({ data }) => setBrandListData(data.content))
-      .catch(error => console.error('Error fetching data:', error));
-  };
+  const fetchBrandListData = (pageNumber = 0, pageSize = 10) => axios.get(`${endpoints.brand}`, {
+    params: {
+      pageNumber,
+      pageSize,
+    },
+  })
+    .then(({ data }) => setBrandListData(data.content))
+    .catch(error => console.error('Error fetching data:', error));
 
   useEffect(() => {
-    fetchData();
+    fetchBrandListData();
   }, []);
 
 
@@ -108,7 +111,9 @@ export default function BrandListView() {
               <TableBody>
                 {brandListData.map(
                   (row) =>
-                    (<BrandTableRow row={row} key={row.id} onSave={fetchData} onDelete={fetchData} />),
+                    (<BrandTableRow row={row} key={row.id}
+                                    onSave={fetchBrandListData}
+                                    onDelete={fetchBrandListData} />),
                 )}
                 <TableEmptyRows
                   height={table.dense ? 56 : 56 + 20}
@@ -128,7 +133,7 @@ export default function BrandListView() {
           // dense={table.dense}
           // onChangeDense={table.onChangeDense}
         />
-        <BrandQuickNewEditForm open={quickNewBrand.value} onClose={quickNewBrand.onFalse} onSave={fetchData} />
+        <BrandQuickNewEditForm open={quickNewBrand.value} onClose={quickNewBrand.onFalse} onSave={fetchBrandListData} />
 
       </Card>
     </Container>

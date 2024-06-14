@@ -14,6 +14,7 @@ import ProductCreatePage from '../../pages/dashboard/catalog/product/new';
 const IndexPage = lazy(() => import('src/pages/dashboard/one'));
 const ProductListPage = lazy(() => import('src/pages/dashboard/catalog/product/list'));
 const BrandListPage = lazy(() => import('src/pages/dashboard/catalog/brand/list'));
+const CategoryListPage = lazy(() => import('src/pages/dashboard/catalog/category/list'));
 
 // ----------------------------------------------------------------------
 
@@ -52,7 +53,7 @@ export const dashboardRoutes = [
       {
         path: 'catalog/category',
         children: [
-          { element: <IndexPage />, index: true },
+          { element: <CategoryListPage />, index: true },
         ],
       },
       {
