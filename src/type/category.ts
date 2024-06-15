@@ -13,14 +13,18 @@ export type Category = {
 
   displayOrder?: number;
 
-  parentPath?: string;
-  fullPath: string;
   depth?: number;
-  parentId?: string;
-  parentCategory?: any;
+
+  parentPath?: string;
+
+  fullPath: string;
 
   descendantCount: number;
-  hierarchy: string []; // 仅用于前端展示，保存分类层级，使用fullPath的‘/’来进行分割成id的数组
+
+  parentId?: string;
+
+  parentCategory?: any;
+
   subCategories?: Category[];
 }
 // export interface CategoryProductXref {

@@ -6,56 +6,54 @@ import { useMemo, useEffect, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
-import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
+import Button from '@mui/material/Button';
 import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
-import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
-
-import { Brand } from 'src/type/brand';
-
-import { useSnackbar } from 'src/components/snackbar';
-import FormProvider, { RHFTextField, RHFUploadBox } from 'src/components/hook-form';
+import DialogActions from '@mui/material/DialogActions';
 
 import Image from '../../../components/image';
+import { Category } from '../../../type/category';
 import axios, { endpoints } from '../../../utils/axios';
+import { useSnackbar } from '../../../components/snackbar';
 import RHFSwitch from '../../../components/hook-form/rhf-switch';
+import FormProvider, { RHFUploadBox, RHFTextField } from '../../../components/hook-form';
 
-
-// ----------------------------------------------------------------------
 
 type Props = {
   open: boolean;
   onClose: VoidFunction;
-  currentBrand?: Brand;
+  currentCategory?: Category;
   onSave?: VoidFunction;
 };
 
-export default function BrandQuickNewEditForm({ currentBrand, open, onClose, onSave }: Props) {
-
+export default function CategoryQuickNewEditForm({ currentCategory, open, onClose, onSave }: Props) {
   const { enqueueSnackbar } = useSnackbar();
 
-  const NewBrandSchema = Yup.object().shape({
+  const NewCategorySchema = Yup.object().shape({
     name: Yup.string().required('Name is required'),
-    logoUrl: Yup.string(),
-    // logoUrl: Yup.string().required('Logo is required'),
+    description: Yup.string(),
+    imageUrl: Yup.string(),
     visible: Yup.boolean(),
     displayOrder: Yup.number(),
+    parentId: Yup.string(),
   });
 
   const defaultValues = useMemo(
     () => ({
-      name: currentBrand?.name || '',
-      logoUrl: currentBrand?.logoUrl || '',
-      visible: currentBrand?.visible || true,
-      displayOrder: currentBrand?.displayOrder || 0,
+      name: currentCategory?.name || '',
+      description: currentCategory?.description || '',
+      imageUrl: currentCategory?.imageUrl || '',
+      visible: currentCategory?.visible || true,
+      displayOrder: currentCategory?.displayOrder || 0,
+      parentId: currentCategory?.parentId || '',
     }),
-    [currentBrand],
+    [currentCategory],
   );
 
   const methods = useForm({
-    resolver: yupResolver(NewBrandSchema),
+    resolver: yupResolver(NewCategorySchema),
     defaultValues,
   });
 
@@ -67,31 +65,30 @@ export default function BrandQuickNewEditForm({ currentBrand, open, onClose, onS
   } = methods;
 
   useEffect(() => {
-    if (currentBrand) {
-      reset(currentBrand);
+    if (currentCategory) {
+      reset(currentCategory);
     }
-  }, [currentBrand, reset]);
+  }, [currentCategory, reset]);
 
   const onSubmit = handleSubmit(async (data) => {
     try {
-      if (currentBrand) {
-        await axios.put(`${endpoints.brand}/${currentBrand.id}`, data);
+      if (currentCategory) {
+        await axios.put(`${endpoints.category}/${currentCategory.id}`, data);
       } else {
-        await axios.post(endpoints.brand, data);
+        await axios.post(endpoints.category, data);
       }
       if (onSave) {
         onSave();
       }
       reset();
       onClose();
-      enqueueSnackbar(`${currentBrand ? 'Update' : 'Create'} success!`);
+      enqueueSnackbar(`${currentCategory ? 'Update' : 'Create'} success!`);
       console.info('DATA', data);
     } catch (error) {
       console.error(error);
     }
   });
-
-  const handleUploadLogo = useCallback(
+  const handleUploadImage = useCallback(
     (acceptedFiles: File[]) => {
       const file = acceptedFiles[0];
 
@@ -100,12 +97,11 @@ export default function BrandQuickNewEditForm({ currentBrand, open, onClose, onS
       });
       console.log(newFile);
       if (file) {
-        setValue('logoUrl', 'returnUploadUrlValue', { shouldValidate: true });
+        setValue('imageUrl', 'returnUploadUrlValue', { shouldValidate: true });
       }
     },
     [setValue],
   );
-
   return (
     <Dialog
       fullWidth
@@ -121,7 +117,7 @@ export default function BrandQuickNewEditForm({ currentBrand, open, onClose, onS
 
         <DialogContent>
           <Alert variant="outlined" severity="info" sx={{ mb: 3 }}>
-            {currentBrand ? 'Brand is waiting for confirmation' : 'Create a new brand'}
+            {currentCategory ? 'Category is waiting for confirmation' : 'Create a new category'}
           </Alert>
 
           <Box
@@ -132,18 +128,18 @@ export default function BrandQuickNewEditForm({ currentBrand, open, onClose, onS
             <RHFUploadBox
               name="logoUrl"
               maxSize={3145728}
-              placeholder={currentBrand?.logoUrl ? <Image
+              placeholder={currentCategory?.imageUrl ? <Image
                 alt="image"
-                src={currentBrand?.logoUrl}
+                src={currentCategory?.imageUrl}
                 sx={{
                   width: 1,
                   height: 1,
                   borderRadius: '50%',
                 }}
               /> : undefined}
-              onDrop={handleUploadLogo}
+              onDrop={handleUploadImage}
             />
-            <RHFTextField name="name" label="Brand Name" />
+            <RHFTextField name="name" label="Category Name" />
           </Box>
         </DialogContent>
 
@@ -154,7 +150,7 @@ export default function BrandQuickNewEditForm({ currentBrand, open, onClose, onS
               Cancel
             </Button>
             <LoadingButton type="submit" variant="contained" loading={isSubmitting}>
-              {currentBrand ? 'Update' : 'Save'}
+              {currentCategory ? 'Update' : 'Save'}
             </LoadingButton>
           </Stack>
 
