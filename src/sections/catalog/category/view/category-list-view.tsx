@@ -1,164 +1,179 @@
-import React, { useRef, useState, useEffect } from 'react';
+import DataGrid, { Column } from 'react-data-grid';
+import { useMemo, useEffect, useReducer, useCallback } from 'react';
 
 import Card from '@mui/material/Card';
 import Button from '@mui/material/Button';
 import Avatar from '@mui/material/Avatar';
 import Container from '@mui/material/Container';
-import {
-  GridApi,
-  GridColDef,
-  DataGridPro,
-  GridRowsProp,
-  useGridApiRef,
-  GridRowIdGetter,
-  DataGridProProps,
-  GridEventListener,
-  GridRowModelUpdate,
-  GridActionsCellItem,
-  GridRenderCellParams,
-  GridToolbarContainer,
-  GridGroupingColDefOverride,
-} from '@mui/x-data-grid-pro';
+import Typography from '@mui/material/Typography';
 
-import { GroupingCellWithLazyLoading } from 'src/components/data-grid';
-import { GroupingCellWithLazyLoadingProps } from 'src/components/data-grid/grouping-cell-with-lazy-loading';
-
+import CellAction from '../cell-action';
+import CellExpander from '../cell-expander';
 import { paths } from '../../../../routes/paths';
 import Iconify from '../../../../components/iconify';
 import { Category } from '../../../../type/category';
 import axios, { endpoints } from '../../../../utils/axios';
 import { useBoolean } from '../../../../hooks/use-boolean';
+import { useSnackbar } from '../../../../components/snackbar';
 import { useSettingsContext } from '../../../../components/settings';
 import CategoryQuickNewEditForm from '../category-quick-new-edit-form';
 import CustomBreadcrumbs from '../../../../components/custom-breadcrumbs';
 
-
-type CategoryRow = Category & { hierarchy: string [], childrenFetched?: boolean, };
-
-const DELIMITER = '/' as const;
-const getHierarchy = (fullPath: string) => fullPath.split(DELIMITER) ?? fullPath;
-
-const getRowId: GridRowIdGetter = (row) => {
-  if (typeof row?.id === 'string' && row?.id.startsWith('placeholder-children-')) {
-    return row.id;
+// const DELIMITER = '/' as const;
+const toggleSubRow = (rows: Category[], id: string): Category[] => {
+  const rowIndex = rows.findIndex((r) => r.id === id);
+  const row = rows[rowIndex];
+  const subCategories = row.subCategories!;
+  const newRows = [...rows];
+  newRows[rowIndex] = { ...row, isExpanded: !row.isExpanded };
+  if (row.isExpanded) {
+    newRows.splice(rowIndex + 1, subCategories.length);
+  } else {
+    newRows.splice(rowIndex + 1, 0, ...subCategories);
   }
-  return row.id;
+  return newRows;
 };
 
-const updateRows = (apiRef: React.MutableRefObject<GridApi>, rows: GridRowModelUpdate[]) => {
-
-  if (!apiRef.current) {
-    return;
+const deleteRow = (rows: Category[], id: string): Category[] => {
+  const row = rows.find((r) => r.id === id);
+  let newRows;
+  // Remove row from flattened rows.
+  if (row?.descendantCount && row.descendantCount > 0) {
+    newRows = rows.filter((r) => r.id !== id || r.parentId !== id);
+  } else {
+    newRows = rows.filter((r) => r.id !== id);
   }
-  const rowsToAdd = [...rows];
-  rows.forEach((row) => {
-    if (row.descendantCount && row.descendantCount > 0) {
-      // Add a placeholder row to make the row expandable
-      rowsToAdd.push({
-        id: `placeholder-children-${getRowId(row)}`,
-        hierarchy: [...row.hierarchy, ''],
-      });
+  if (row?.parentId) {
+    // Remove row from parent row.
+    const parentRowIndex = newRows.findIndex((r) => r.id === row.parentId);
+    const { subCategories } = newRows[parentRowIndex];
+    if (subCategories) {
+      const newSubCategories = subCategories.filter((sr) => sr.id !== id);
+      newRows[parentRowIndex] = { ...newRows[parentRowIndex], subCategories: newSubCategories };
     }
-  });
-  apiRef.current.updateRows(rowsToAdd);
+  }
+  return newRows;
 };
 
-const CUSTOM_GROUPING_COL_DEF: GridGroupingColDefOverride = {
-  renderCell: (params) => (
-    <GroupingCellWithLazyLoading {...(params as GroupingCellWithLazyLoadingProps)} />
-  ),
+type Action = | { type: 'setCategoryListData', categoryData: Category[] }
+  | { type: 'toggleSubRow' | 'deleteRow', id: string }
+
+const reducer = (rows: Category[], action: Action): Category[] => {
+  switch (action.type) {
+    case 'setCategoryListData':
+      return action.categoryData;
+    case 'toggleSubRow':
+      return toggleSubRow(rows, action.id);
+    case 'deleteRow':
+      return deleteRow(rows, action.id);
+    default:
+      return rows;
+  }
+};
+
+const fetchCategoryListData = async (parentCategoryId?: string) => {
+  const url = parentCategoryId ? `${endpoints.category}/${parentCategoryId}/subcategories` : `${endpoints.category}/subcategories`;
+  return axios.get<Category []>(url).then(({ data }) => data.map((item) => ({
+    ...item,
+    isExpanded: false,
+    childrenFetched: false,
+  })));
 };
 
 export default function CategoryListView() {
 
   const settings = useSettingsContext();
+  const { enqueueSnackbar } = useSnackbar();
 
   const quickNewCategory = useBoolean();
-  const quickEditCategory = useBoolean();
-  const [currentCategory, setCurrentCategory] = useState<Category>();
-
-  const apiRef = useGridApiRef();
-
-  const initialCategoryRows: GridRowsProp = [];
-  const initialCategoryRowsRef = useRef(initialCategoryRows);
-
-  const getTreeDataPath: DataGridProProps['getTreeDataPath'] = (row) => row.hierarchy;
-  const getTreeDataPathRef = useRef(getTreeDataPath);
-
-
-  const columns: GridColDef[] = [
-    {
-      field: 'imageUrl', headerName: 'Image', editable: true, minWidth: 200,
-      renderCell: (params: GridRenderCellParams<any, string>) => (
-        <Avatar alt={params.value} src={params.value || '/favicon/apple-touch-icon.png'} />),
-    },
-    { field: 'name', headerName: 'Category Name', editable: true, minWidth: 150 },
-    {
-      field: 'visible',
-      headerName: 'Visibility',
-      editable: true,
-      type: 'boolean',
-    },
-    {
-      field: 'actions',
-      type: 'actions',
-      headerName: 'Actions',
-      flex: 1,
-      cellClassName: 'actions',
-      getActions: ({ id, row }) => [
-        <GridActionsCellItem
-          icon={<Iconify icon="solar:pen-bold" />}
-          label="Edit"
-          className="textPrimary"
-          onClick={() => {
-            setCurrentCategory({ ...row });
-            quickEditCategory.onTrue();
-          }}
-          color="inherit"
-        />,
-        <GridActionsCellItem
-          icon={<Iconify icon="solar:trash-bin-trash-bold" />}
-          label="Delete"
-          onClick={async () => {
-            await axios.delete(`${endpoints.category}/${id}`);
-            apiRef.current.updateRows([{ id, _action: 'delete' }]);
-          }}
-          color="inherit"
-        />,
-      ],
-    },
-  ];
-
-  const fetchCategoryListData = async (parentCategoryId?: string) => {
-    const url = parentCategoryId ? `${endpoints.category}/${parentCategoryId}/subcategories` : `${endpoints.category}/subcategories`;
-    return axios.get<Category []>(url).then(({ data }) => data.map(category => ({
-      ...category,
-      hierarchy: getHierarchy(category.fullPath),
-    })));
-  };
+  const [rows, dispatch] = useReducer(reducer, []);
 
   useEffect(() => {
-    fetchCategoryListData().then(categoryRows => {
-      updateRows(apiRef, categoryRows);
+    fetchCategoryListData().then(categories => {
+      dispatch({ type: 'setCategoryListData', categoryData: categories });
     });
+  }, []);
 
-    const handleRowExpansionChange: GridEventListener<'rowExpansionChange'> = async (node) => {
-      const row = apiRef.current.getRow(node.id) as CategoryRow | null;
+  const handleAddCategory = useCallback((newCategory: Category) => {
+    axios.post(endpoints.category, newCategory).then(() => {
+      console.log('todo:dispatch');
+      enqueueSnackbar('Create success!');
+    });
+  }, [enqueueSnackbar]);
 
-      if (!node.childrenExpanded || !row || row.childrenFetched) {
-        return;
-      }
+  const handleEditCategory = useCallback((id: string, newCategory: Category) => {
+    axios.put(`${endpoints.category}/${id}`, newCategory).then(() => {
+      console.log('todo:dispatch');
+      enqueueSnackbar('Update success!');
+    });
+  }, [enqueueSnackbar]);
 
-      const subcategories = await fetchCategoryListData(row.id);
-      updateRows(apiRef, [
-        ...subcategories,
-        { ...row, childrenFetched: true },
-        { id: `placeholder-children-${node.id}`, _action: 'delete' },
-      ]);
-    };
+  const handleDeleteCategory = useCallback((id: string) => {
+    axios.delete(`${endpoints.category}/${id}`).then(() => {
+      dispatch({ type: 'deleteRow', id });
+      enqueueSnackbar('Delete success!');
+    });
+  }, [enqueueSnackbar]);
 
-    return apiRef.current.subscribeEvent('rowExpansionChange', handleRowExpansionChange);
-  }, [apiRef]);
+  const columns = useMemo((): readonly Column<Category>[] => [
+    {
+      key: 'name',
+      name: 'Name',
+      frozen: true,
+      renderCell({ row }) {
+        const hasSubCategories = row.descendantCount > 0;
+        return (
+          <>
+            {hasSubCategories && (
+              <CellExpander
+                expanded={row.isExpanded === true}
+                onCellExpand={() => {
+                  if (row.childrenFetched) {
+                    dispatch({ id: row.id!, type: 'toggleSubRow' });
+                  } else {
+                    fetchCategoryListData(row.id).then((subCategories) => {
+                      row.childrenFetched = true;
+                      row.subCategories = subCategories;
+                      dispatch({ id: row.id!, type: 'toggleSubRow' });
+                    });
+                  }
+                }}
+              />
+            )}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'left',
+              alignItems: 'center',
+              height: '100%',
+              marginInlineStart: '30px',
+            }}>
+              <Typography variant="body2" style={{}}>
+                {row.name}
+              </Typography>
+            </div>
+          </>
+        );
+      },
+    },
+    {
+      key: 'imageUrl',
+      name: 'Image',
+      renderCell: ({ row }) => (<Avatar src={row.imageUrl || '/favicon/apple-touch-icon.png'} />),
+    },
+    {
+      key: 'visible',
+      name: 'Visibility',
+      renderCell: ({ row }) =>
+        row.visible ? <Iconify icon="charm:tick" /> : <Iconify icon="charm:cross" />,
+    },
+    {
+      key: 'action',
+      name: 'Action',
+      renderCell: ({ row }) => (<CellAction currentCategory={row}
+                                            onDelete={handleDeleteCategory}
+                                            onEdit={handleEditCategory} />),
+    },
+  ], [handleDeleteCategory, handleEditCategory]);
 
   return (
     <Container
@@ -184,6 +199,7 @@ export default function CategoryListView() {
             variant="contained"
             startIcon={<Iconify icon="mingcute:add-line" />}
             onClick={() => {
+              quickNewCategory.onTrue();
             }}
           >
             New Category
@@ -204,34 +220,11 @@ export default function CategoryListView() {
           flexDirection: { md: 'column' },
         }}
       >
-        <DataGridPro
-          treeData
-          apiRef={apiRef}
-          rows={initialCategoryRowsRef.current}
-          columns={columns}
-          getTreeDataPath={getTreeDataPathRef.current}
-          groupingColDef={CUSTOM_GROUPING_COL_DEF}
-          getRowId={getRowId}
-          slots={{
-            toolbar: () => (
-              <GridToolbarContainer>
-                <Button color="primary" startIcon={<Iconify icon="material-symbols:add" />}
-                        onClick={quickNewCategory.onTrue}>
-                  Add Category
-                </Button>
-              </GridToolbarContainer>),
-          }}
-          disableRowSelectionOnClick
-          disableMultipleRowSelection
-          disableChildrenFiltering
-        />
+        <DataGrid columns={columns} rows={rows} direction="ltr" />
         <CategoryQuickNewEditForm open={quickNewCategory.value}
                                   onClose={quickNewCategory.onFalse}
-                                  onSave={fetchCategoryListData} />
-        <CategoryQuickNewEditForm open={quickEditCategory.value}
-                                  onClose={quickEditCategory.onFalse}
-                                  currentCategory={currentCategory}
-                                  onSave={fetchCategoryListData} />
+                                  onAdd={handleAddCategory} />
+
       </Card>
 
     </Container>

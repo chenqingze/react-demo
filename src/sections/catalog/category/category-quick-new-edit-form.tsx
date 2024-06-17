@@ -15,8 +15,6 @@ import DialogActions from '@mui/material/DialogActions';
 
 import Image from '../../../components/image';
 import { Category } from '../../../type/category';
-import axios, { endpoints } from '../../../utils/axios';
-import { useSnackbar } from '../../../components/snackbar';
 import RHFSwitch from '../../../components/hook-form/rhf-switch';
 import FormProvider, { RHFUploadBox, RHFTextField } from '../../../components/hook-form';
 
@@ -25,11 +23,11 @@ type Props = {
   open: boolean;
   onClose: VoidFunction;
   currentCategory?: Category;
-  onSave?: VoidFunction;
+  onAdd?: (newCategory: Category) => void;
+  onEdit?: (id: string, newCategory: Category) => void;
 };
 
-export default function CategoryQuickNewEditForm({ currentCategory, open, onClose, onSave }: Props) {
-  const { enqueueSnackbar } = useSnackbar();
+export default function CategoryQuickNewEditForm({ currentCategory, open, onClose, onAdd, onEdit }: Props) {
 
   const NewCategorySchema = Yup.object().shape({
     name: Yup.string().required('Name is required'),
@@ -72,17 +70,15 @@ export default function CategoryQuickNewEditForm({ currentCategory, open, onClos
 
   const onSubmit = handleSubmit(async (data) => {
     try {
-      if (currentCategory) {
-        await axios.put(`${endpoints.category}/${currentCategory.id}`, data);
+      if (currentCategory && onEdit) {
+        onEdit(currentCategory.id!, data as Category);
+      } else if (onAdd) {
+        onAdd(data as Category);
       } else {
-        await axios.post(endpoints.category, data);
-      }
-      if (onSave) {
-        onSave();
+        console.error('something went wrong');
       }
       reset();
       onClose();
-      enqueueSnackbar(`${currentCategory ? 'Update' : 'Create'} success!`);
       console.info('DATA', data);
     } catch (error) {
       console.error(error);

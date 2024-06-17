@@ -26,6 +26,9 @@ export type Category = {
   parentCategory?: any;
 
   subCategories?: Category[];
+  isExpanded?: boolean; // for ui
+  childrenFetched?: boolean;// for ui
+
 }
 // export interface CategoryProductXref {
 //   id?: number;

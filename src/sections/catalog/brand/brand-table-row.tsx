@@ -71,42 +71,11 @@ export default function BrandTableRow({ row, onSave, onDelete }: Props) {
               <Iconify icon="solar:trash-bin-trash-bold" />
             </IconButton>
           </Tooltip>
-          {/* <IconButton color={popover.open ? 'inherit' : 'default'} onClick={popover.onOpen}>
-            <Iconify icon="eva:more-vertical-fill" />
-          </IconButton> */}
         </TableCell>
       </TableRow>
 
       <BrandQuickNewEditForm currentBrand={row} open={quickEditBrand.value} onClose={quickEditBrand.onFalse}
                              onSave={onSave} />
-
-      {/* <CustomPopover
-        open={popover.open}
-        onClose={popover.onClose}
-        arrow="right-top"
-        sx={{ width: 140 }}
-      >
-        <MenuItem
-          onClick={() => {
-            confirm.onTrue();
-            popover.onClose();
-          }}
-          sx={{ color: 'error.main' }}
-        >
-          <Iconify icon="solar:trash-bin-trash-bold" />
-          Delete
-        </MenuItem>
-
-        <MenuItem
-          onClick={() => {
-            onEditRow();
-            popover.onClose();
-          }}
-        >
-          <Iconify icon="solar:pen-bold" />
-          Edit
-        </MenuItem>
-      </CustomPopover> */}
 
       <ConfirmDialog
         open={confirm.value}
