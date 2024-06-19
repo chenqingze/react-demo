@@ -13,7 +13,7 @@ export type Category = {
 
   displayOrder?: number;
 
-  depth?: number;
+  depth: number;
 
   parentPath?: string;
 
@@ -23,8 +23,8 @@ export type Category = {
 
   parentId?: string;
 
-  parentCategory?: any;
-
+  parentCategory?: Category;
+  parentCategoryName?: string
   subCategories?: Category[];
   isExpanded?: boolean; // for ui
   childrenFetched?: boolean;// for ui

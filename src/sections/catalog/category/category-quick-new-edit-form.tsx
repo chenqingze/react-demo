@@ -3,20 +3,20 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useMemo, useEffect, useCallback } from 'react';
 
-import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Dialog from '@mui/material/Dialog';
 import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 
-import Image from '../../../components/image';
 import { Category } from '../../../type/category';
+import { CategoryTreeSelect } from './category-tree-select';
 import RHFSwitch from '../../../components/hook-form/rhf-switch';
-import FormProvider, { RHFUploadBox, RHFTextField } from '../../../components/hook-form';
+import FormProvider, { RHFEditor, RHFUpload, RHFTextField } from '../../../components/hook-form';
 
 
 type Props = {
@@ -28,7 +28,7 @@ type Props = {
 };
 
 export default function CategoryQuickNewEditForm({ currentCategory, open, onClose, onAdd, onEdit }: Props) {
-
+  // const [parentCategory, setParentCategory] = useState(currentCategory?.parentCategory?.name);
   const NewCategorySchema = Yup.object().shape({
     name: Yup.string().required('Name is required'),
     description: Yup.string(),
@@ -69,6 +69,7 @@ export default function CategoryQuickNewEditForm({ currentCategory, open, onClos
   }, [currentCategory, reset]);
 
   const onSubmit = handleSubmit(async (data) => {
+    console.log(data);
     try {
       if (currentCategory && onEdit) {
         onEdit(currentCategory.id!, data as Category);
@@ -84,6 +85,7 @@ export default function CategoryQuickNewEditForm({ currentCategory, open, onClos
       console.error(error);
     }
   });
+
   const handleUploadImage = useCallback(
     (acceptedFiles: File[]) => {
       const file = acceptedFiles[0];
@@ -98,6 +100,7 @@ export default function CategoryQuickNewEditForm({ currentCategory, open, onClos
     },
     [setValue],
   );
+
   return (
     <Dialog
       fullWidth
@@ -115,31 +118,28 @@ export default function CategoryQuickNewEditForm({ currentCategory, open, onClos
           <Alert variant="outlined" severity="info" sx={{ mb: 3 }}>
             {currentCategory ? 'Category is waiting for confirmation' : 'Create a new category'}
           </Alert>
-
-          <Box
-            rowGap={3}
-            columnGap={2}
-            display="flex"
-            alignItems="center">
-            <RHFUploadBox
-              name="logoUrl"
-              maxSize={3145728}
-              placeholder={currentCategory?.imageUrl ? <Image
-                alt="image"
-                src={currentCategory?.imageUrl}
-                sx={{
-                  width: 1,
-                  height: 1,
-                  borderRadius: '50%',
-                }}
-              /> : undefined}
-              onDrop={handleUploadImage}
-            />
+          <Stack spacing={2} sx={{ p: 3 }}>
             <RHFTextField name="name" label="Category Name" />
-          </Box>
+            <CategoryTreeSelect value={currentCategory?.parentCategory?.name}
+                                onSelect={(category: Category) => setValue('parentId', category.id)} />
+            <Stack spacing={1}>
+              <Typography variant="subtitle2">Cover Image</Typography>
+              <RHFUpload
+                name="imageUrl"
+                maxSize={3145728}
+                onDrop={handleUploadImage}
+                onDelete={() => setValue('imageUrl', undefined)}
+              />
+            </Stack>
+            <Stack spacing={1}>
+              <Typography variant="subtitle2">Description</Typography>
+              <RHFEditor simple name="description" />
+            </Stack>
+
+          </Stack>
         </DialogContent>
 
-        <DialogActions sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+        <DialogActions sx={{ justifyContent: 'space-between', alignItems: 'center', mx: '24px' }}>
           <RHFSwitch name="visible" label="Visible" />
           <Stack spacing={2} flexDirection="row">
             <Button variant="outlined" onClick={onClose}>

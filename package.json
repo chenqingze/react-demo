@@ -42,6 +42,7 @@
     "npm": "^10.8.1",
     "nprogress": "^0.2.0",
     "react": "^18.2.0",
+    "react-arborist": "^3.4.0",
     "react-data-grid": "^7.0.0-beta.44",
     "react-dom": "^18.2.0",
     "react-dropzone": "^14.2.3",

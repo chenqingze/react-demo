@@ -7,19 +7,21 @@ import Avatar from '@mui/material/Avatar';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 
+import { useSnackbar } from 'src/components/snackbar';
+
 import CellAction from '../cell-action';
-import CellExpander from '../cell-expander';
 import { paths } from '../../../../routes/paths';
 import Iconify from '../../../../components/iconify';
 import { Category } from '../../../../type/category';
 import axios, { endpoints } from '../../../../utils/axios';
 import { useBoolean } from '../../../../hooks/use-boolean';
-import { useSnackbar } from '../../../../components/snackbar';
+import { CellExpander, CellNoExpander } from '../cell-expander';
 import { useSettingsContext } from '../../../../components/settings';
 import CategoryQuickNewEditForm from '../category-quick-new-edit-form';
 import CustomBreadcrumbs from '../../../../components/custom-breadcrumbs';
 
 // const DELIMITER = '/' as const;
+
 const toggleSubRow = (rows: Category[], id: string): Category[] => {
   const rowIndex = rows.findIndex((r) => r.id === id);
   const row = rows[rowIndex];
@@ -43,8 +45,17 @@ const deleteRow = (rows: Category[], id: string): Category[] => {
   } else {
     newRows = rows.filter((r) => r.id !== id);
   }
-  if (row?.parentId) {
-    // Remove row from parent row.
+  // Remove row from parent row. 假如删除的是根分类(row.depth === 0)，不需要处理，因为根分类的元素都在flattened rows里
+  if (row?.depth === 2) {
+    const [rootParentId, parentId] = row.fullPath.split('/');
+    const rootParentRowIndex = newRows.findIndex((r) => r.id === rootParentId[0]);
+    const rootParentRow = newRows[rootParentRowIndex];
+    const parentRow = rootParentRow.subCategories?.find(subRow => subRow.id === parentId);
+    if (parentRow) {
+      parentRow.subCategories = parentRow.subCategories!.filter((r) => r.id !== row.id);
+    }
+  }
+  if (row?.depth === 1) {
     const parentRowIndex = newRows.findIndex((r) => r.id === row.parentId);
     const { subCategories } = newRows[parentRowIndex];
     if (subCategories) {
@@ -71,14 +82,6 @@ const reducer = (rows: Category[], action: Action): Category[] => {
   }
 };
 
-const fetchCategoryListData = async (parentCategoryId?: string) => {
-  const url = parentCategoryId ? `${endpoints.category}/${parentCategoryId}/subcategories` : `${endpoints.category}/subcategories`;
-  return axios.get<Category []>(url).then(({ data }) => data.map((item) => ({
-    ...item,
-    isExpanded: false,
-    childrenFetched: false,
-  })));
-};
 
 export default function CategoryListView() {
 
@@ -88,11 +91,21 @@ export default function CategoryListView() {
   const quickNewCategory = useBoolean();
   const [rows, dispatch] = useReducer(reducer, []);
 
+  const fetchCategoryListData = useCallback(async (parentCategory?: Category) => {
+    const url = parentCategory ? `${endpoints.category}/${parentCategory?.id}/subcategories` : `${endpoints.category}/subcategories`;
+    return axios.get<Category []>(url).then(({ data }) => data.map((item) => ({
+      ...item,
+      isExpanded: false,
+      childrenFetched: false,
+      parentCategory: parentCategory ? { ...parentCategory, subCategories: undefined } : undefined,
+    })));
+  }, []);
+
   useEffect(() => {
     fetchCategoryListData().then(categories => {
       dispatch({ type: 'setCategoryListData', categoryData: categories });
     });
-  }, []);
+  }, [fetchCategoryListData]);
 
   const handleAddCategory = useCallback((newCategory: Category) => {
     axios.post(endpoints.category, newCategory).then(() => {
@@ -123,15 +136,21 @@ export default function CategoryListView() {
       renderCell({ row }) {
         const hasSubCategories = row.descendantCount > 0;
         return (
-          <>
-            {hasSubCategories && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'left',
+            alignItems: 'center',
+            height: '100%',
+            marginInlineStart: `${(row.depth) * 26}px`,
+          }}>
+            {hasSubCategories ? (
               <CellExpander
                 expanded={row.isExpanded === true}
                 onCellExpand={() => {
                   if (row.childrenFetched) {
                     dispatch({ id: row.id!, type: 'toggleSubRow' });
                   } else {
-                    fetchCategoryListData(row.id).then((subCategories) => {
+                    fetchCategoryListData(row).then((subCategories) => {
                       row.childrenFetched = true;
                       row.subCategories = subCategories;
                       dispatch({ id: row.id!, type: 'toggleSubRow' });
@@ -139,19 +158,13 @@ export default function CategoryListView() {
                   }
                 }}
               />
-            )}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'left',
-              alignItems: 'center',
-              height: '100%',
-              marginInlineStart: '30px',
-            }}>
-              <Typography variant="body2" style={{}}>
+            ) : <CellNoExpander />}
+            <div>
+              <Typography variant="body2">
                 {row.name}
               </Typography>
             </div>
-          </>
+          </div>
         );
       },
     },
@@ -173,7 +186,7 @@ export default function CategoryListView() {
                                             onDelete={handleDeleteCategory}
                                             onEdit={handleEditCategory} />),
     },
-  ], [handleDeleteCategory, handleEditCategory]);
+  ], [fetchCategoryListData, handleDeleteCategory, handleEditCategory]);
 
   return (
     <Container
@@ -223,7 +236,8 @@ export default function CategoryListView() {
         <DataGrid columns={columns} rows={rows} direction="ltr" />
         <CategoryQuickNewEditForm open={quickNewCategory.value}
                                   onClose={quickNewCategory.onFalse}
-                                  onAdd={handleAddCategory} />
+                                  onAdd={handleAddCategory}
+        />
 
       </Card>
 
