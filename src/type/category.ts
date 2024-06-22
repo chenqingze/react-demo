@@ -24,7 +24,7 @@ export type Category = {
   parentId?: string;
 
   parentCategory?: Category;
-  parentCategoryName?: string
+
   subCategories?: Category[];
   isExpanded?: boolean; // for ui
   childrenFetched?: boolean;// for ui

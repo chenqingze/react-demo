@@ -63,12 +63,12 @@ export default function BrandTableRow({ row, onSave, onDelete }: Props) {
         <TableCell align="right" sx={{ px: 1, whiteSpace: 'nowrap' }}>
           <Tooltip title="Quick Edit" placement="top" arrow>
             <IconButton color={quickEditBrand.value ? 'inherit' : 'default'} onClick={quickEditBrand.onTrue}>
-              <Iconify icon="solar:pen-bold" />
+              <Iconify icon="mdi:edit" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Delete" placement="top" arrow>
             <IconButton color={confirm.value ? 'inherit' : 'default'} onClick={confirm.onTrue}>
-              <Iconify icon="solar:trash-bin-trash-bold" />
+              <Iconify icon="mdi:trash-can-outline" />
             </IconButton>
           </Tooltip>
         </TableCell>

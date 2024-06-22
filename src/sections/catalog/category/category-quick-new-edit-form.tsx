@@ -7,6 +7,7 @@ import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Dialog from '@mui/material/Dialog';
 import Button from '@mui/material/Button';
+import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -14,7 +15,6 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 
 import { Category } from '../../../type/category';
-import { CategoryTreeSelect } from './category-tree-select';
 import RHFSwitch from '../../../components/hook-form/rhf-switch';
 import FormProvider, { RHFEditor, RHFUpload, RHFTextField } from '../../../components/hook-form';
 
@@ -23,12 +23,19 @@ type Props = {
   open: boolean;
   onClose: VoidFunction;
   currentCategory?: Category;
+  parentCategory?: Category;
   onAdd?: (newCategory: Category) => void;
   onEdit?: (id: string, newCategory: Category) => void;
 };
 
-export default function CategoryQuickNewEditForm({ currentCategory, open, onClose, onAdd, onEdit }: Props) {
-  // const [parentCategory, setParentCategory] = useState(currentCategory?.parentCategory?.name);
+export default function CategoryQuickNewEditForm({
+                                                   open,
+                                                   onClose,
+                                                   currentCategory,
+                                                   parentCategory,
+                                                   onAdd,
+                                                   onEdit,
+                                                 }: Props) {
   const NewCategorySchema = Yup.object().shape({
     name: Yup.string().required('Name is required'),
     description: Yup.string(),
@@ -66,10 +73,12 @@ export default function CategoryQuickNewEditForm({ currentCategory, open, onClos
     if (currentCategory) {
       reset(currentCategory);
     }
-  }, [currentCategory, reset]);
+    if (parentCategory) {
+      setValue('parentId', parentCategory.id);
+    }
+  }, [currentCategory, parentCategory, reset, setValue]);
 
   const onSubmit = handleSubmit(async (data) => {
-    console.log(data);
     try {
       if (currentCategory && onEdit) {
         onEdit(currentCategory.id!, data as Category);
@@ -80,7 +89,7 @@ export default function CategoryQuickNewEditForm({ currentCategory, open, onClos
       }
       reset();
       onClose();
-      console.info('DATA', data);
+      // console.info('DATA', data);
     } catch (error) {
       console.error(error);
     }
@@ -120,8 +129,8 @@ export default function CategoryQuickNewEditForm({ currentCategory, open, onClos
           </Alert>
           <Stack spacing={2} sx={{ p: 3 }}>
             <RHFTextField name="name" label="Category Name" />
-            <CategoryTreeSelect value={currentCategory?.parentCategory?.name}
-                                onSelect={(category: Category) => setValue('parentId', category.id)} />
+            <TextField defaultValue={currentCategory?.parentCategory?.name || parentCategory?.name || ''}
+                       label="Praent Category" disabled />
             <Stack spacing={1}>
               <Typography variant="subtitle2">Cover Image</Typography>
               <RHFUpload

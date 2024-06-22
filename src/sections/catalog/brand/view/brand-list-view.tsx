@@ -71,7 +71,7 @@ export default function BrandListView() {
         action={
           <Button
             variant="contained"
-            startIcon={<Iconify icon="mingcute:add-line" />}
+            startIcon={<Iconify icon="mdi:add" />}
             onClick={quickNewBrand.onTrue}
           >
             New Brand

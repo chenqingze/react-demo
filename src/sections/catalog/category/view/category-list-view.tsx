@@ -1,5 +1,5 @@
 import DataGrid, { Column } from 'react-data-grid';
-import { useMemo, useEffect, useReducer, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import Card from '@mui/material/Card';
 import Button from '@mui/material/Button';
@@ -22,111 +22,91 @@ import CustomBreadcrumbs from '../../../../components/custom-breadcrumbs';
 
 // const DELIMITER = '/' as const;
 
-const toggleSubRow = (rows: Category[], id: string): Category[] => {
-  const rowIndex = rows.findIndex((r) => r.id === id);
-  const row = rows[rowIndex];
-  const subCategories = row.subCategories!;
-  const newRows = [...rows];
-  newRows[rowIndex] = { ...row, isExpanded: !row.isExpanded };
-  if (row.isExpanded) {
-    newRows.splice(rowIndex + 1, subCategories.length);
-  } else {
-    newRows.splice(rowIndex + 1, 0, ...subCategories);
-  }
-  return newRows;
+// type Action = | { type: 'setCategoryListData', categoryData: Category[] }
+//   | { type: 'toggleSubRow' | 'deleteRow', id: string }
+
+const fetchCategoryListData = async (parentCategory?: Category) => {
+  const url = parentCategory ? `${endpoints.category}/${parentCategory?.id}/subcategories` : `${endpoints.category}/subcategories`;
+  return axios.get<Category []>(url).then(({ data }) => data.map((item) => ({
+    ...item,
+    isExpanded: false,
+    childrenFetched: false,
+    parentCategory: parentCategory ? { ...parentCategory, subCategories: undefined } : undefined,
+  })));
 };
-
-const deleteRow = (rows: Category[], id: string): Category[] => {
-  const row = rows.find((r) => r.id === id);
-  let newRows;
-  // Remove row from flattened rows.
-  if (row?.descendantCount && row.descendantCount > 0) {
-    newRows = rows.filter((r) => r.id !== id || r.parentId !== id);
-  } else {
-    newRows = rows.filter((r) => r.id !== id);
-  }
-  // Remove row from parent row. 假如删除的是根分类(row.depth === 0)，不需要处理，因为根分类的元素都在flattened rows里
-  if (row?.depth === 2) {
-    const [rootParentId, parentId] = row.fullPath.split('/');
-    const rootParentRowIndex = newRows.findIndex((r) => r.id === rootParentId[0]);
-    const rootParentRow = newRows[rootParentRowIndex];
-    const parentRow = rootParentRow.subCategories?.find(subRow => subRow.id === parentId);
-    if (parentRow) {
-      parentRow.subCategories = parentRow.subCategories!.filter((r) => r.id !== row.id);
-    }
-  }
-  if (row?.depth === 1) {
-    const parentRowIndex = newRows.findIndex((r) => r.id === row.parentId);
-    const { subCategories } = newRows[parentRowIndex];
-    if (subCategories) {
-      const newSubCategories = subCategories.filter((sr) => sr.id !== id);
-      newRows[parentRowIndex] = { ...newRows[parentRowIndex], subCategories: newSubCategories };
-    }
-  }
-  return newRows;
-};
-
-type Action = | { type: 'setCategoryListData', categoryData: Category[] }
-  | { type: 'toggleSubRow' | 'deleteRow', id: string }
-
-const reducer = (rows: Category[], action: Action): Category[] => {
-  switch (action.type) {
-    case 'setCategoryListData':
-      return action.categoryData;
-    case 'toggleSubRow':
-      return toggleSubRow(rows, action.id);
-    case 'deleteRow':
-      return deleteRow(rows, action.id);
-    default:
-      return rows;
-  }
-};
-
 
 export default function CategoryListView() {
 
   const settings = useSettingsContext();
+  
   const { enqueueSnackbar } = useSnackbar();
 
   const quickNewCategory = useBoolean();
-  const [rows, dispatch] = useReducer(reducer, []);
 
-  const fetchCategoryListData = useCallback(async (parentCategory?: Category) => {
-    const url = parentCategory ? `${endpoints.category}/${parentCategory?.id}/subcategories` : `${endpoints.category}/subcategories`;
-    return axios.get<Category []>(url).then(({ data }) => data.map((item) => ({
-      ...item,
-      isExpanded: false,
-      childrenFetched: false,
-      parentCategory: parentCategory ? { ...parentCategory, subCategories: undefined } : undefined,
-    })));
-  }, []);
+  const [tableTreeData, setTableTreeData] = useState<Category[]>([]);
+
+  const hasChildren = (category: Category) => category.descendantCount > 0;
+
+  const loadChildren = useCallback((row: Category) => {
+    const { id, depth, childrenFetched } = row;
+    // 已经加载过了，或者是第三级分类无需处理,因为默认最多三级分类
+    if (!hasChildren(row) || childrenFetched || depth === 2) {
+      return;
+    }
+    fetchCategoryListData(row).then(subCategories => {
+      const newTableTreeData = [...tableTreeData];
+      const rowIndex = newTableTreeData.findIndex((node) => node.id === id);
+      newTableTreeData[rowIndex] = { ...row, isExpanded: true, childrenFetched: true, subCategories };
+      newTableTreeData.splice(rowIndex + 1, 0, ...subCategories);
+      setTableTreeData(newTableTreeData);
+    });
+  }, [tableTreeData]);
 
   useEffect(() => {
     fetchCategoryListData().then(categories => {
-      dispatch({ type: 'setCategoryListData', categoryData: categories });
+      setTableTreeData(categories);
     });
-  }, [fetchCategoryListData]);
+  }, []);
 
   const handleAddCategory = useCallback((newCategory: Category) => {
     axios.post(endpoints.category, newCategory).then(() => {
-      console.log('todo:dispatch');
+      fetchCategoryListData().then(categories => setTableTreeData(categories));
       enqueueSnackbar('Create success!');
     });
   }, [enqueueSnackbar]);
 
   const handleEditCategory = useCallback((id: string, newCategory: Category) => {
     axios.put(`${endpoints.category}/${id}`, newCategory).then(() => {
-      console.log('todo:dispatch');
+      fetchCategoryListData().then(categories => setTableTreeData(categories));
       enqueueSnackbar('Update success!');
     });
   }, [enqueueSnackbar]);
 
   const handleDeleteCategory = useCallback((id: string) => {
     axios.delete(`${endpoints.category}/${id}`).then(() => {
-      dispatch({ type: 'deleteRow', id });
+      fetchCategoryListData().then(categories => setTableTreeData(categories));
       enqueueSnackbar('Delete success!');
     });
   }, [enqueueSnackbar]);
+  // const setDefaultExpandNode = ()=>{};
+  const handleToggle = useCallback((id: string) => {
+    const rowIndex = tableTreeData.findIndex((r) => r.id === id)!;
+    const row = tableTreeData[rowIndex];
+    const { subCategories, childrenFetched, isExpanded, fullPath: parentFullPath } = row;
+    if (childrenFetched) {
+      const newTableTreeData = [...tableTreeData];
+      newTableTreeData[rowIndex] = { ...row, isExpanded: !isExpanded };
+      const childrenNodeLength = newTableTreeData.filter((currentNode) => currentNode.fullPath.includes(parentFullPath) && isExpanded).length - 1;
+      if (isExpanded) {
+        newTableTreeData.splice(rowIndex + 1, childrenNodeLength);
+      } else {
+        newTableTreeData.splice(rowIndex + 1, 0, ...subCategories!);
+      }
+      setTableTreeData(newTableTreeData);
+    } else {
+      loadChildren(row);
+    }
+  }, [loadChildren, tableTreeData]);
 
   const columns = useMemo((): readonly Column<Category>[] => [
     {
@@ -146,16 +126,8 @@ export default function CategoryListView() {
             {hasSubCategories ? (
               <CellExpander
                 expanded={row.isExpanded === true}
-                onCellExpand={() => {
-                  if (row.childrenFetched) {
-                    dispatch({ id: row.id!, type: 'toggleSubRow' });
-                  } else {
-                    fetchCategoryListData(row).then((subCategories) => {
-                      row.childrenFetched = true;
-                      row.subCategories = subCategories;
-                      dispatch({ id: row.id!, type: 'toggleSubRow' });
-                    });
-                  }
+                onCellExpand={async () => {
+                  handleToggle(row.id!);
                 }}
               />
             ) : <CellNoExpander />}
@@ -183,10 +155,12 @@ export default function CategoryListView() {
       key: 'action',
       name: 'Action',
       renderCell: ({ row }) => (<CellAction currentCategory={row}
+                                            onAdd={handleAddCategory}
+                                            onEdit={handleEditCategory}
                                             onDelete={handleDeleteCategory}
-                                            onEdit={handleEditCategory} />),
+      />),
     },
-  ], [fetchCategoryListData, handleDeleteCategory, handleEditCategory]);
+  ], [handleAddCategory, handleDeleteCategory, handleEditCategory, handleToggle]);
 
   return (
     <Container
@@ -210,7 +184,7 @@ export default function CategoryListView() {
         action={
           <Button
             variant="contained"
-            startIcon={<Iconify icon="mingcute:add-line" />}
+            startIcon={<Iconify icon="mdi:add" />}
             onClick={() => {
               quickNewCategory.onTrue();
             }}
@@ -233,7 +207,7 @@ export default function CategoryListView() {
           flexDirection: { md: 'column' },
         }}
       >
-        <DataGrid columns={columns} rows={rows} direction="ltr" />
+        <DataGrid columns={columns} rows={tableTreeData} direction="ltr" />
         <CategoryQuickNewEditForm open={quickNewCategory.value}
                                   onClose={quickNewCategory.onFalse}
                                   onAdd={handleAddCategory}

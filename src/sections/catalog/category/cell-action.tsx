@@ -10,25 +10,33 @@ import CategoryQuickNewEditForm from './category-quick-new-edit-form';
 
 interface CellActionProps {
   currentCategory: Category;
-  onDelete: (id: string) => void;
+  onAdd: (newCategory: Category) => void;
   onEdit: (id: string, newCategory: Category) => void;
+  onDelete: (id: string) => void;
 }
 
-export default function CellAction({ currentCategory, onDelete, onEdit }: CellActionProps) {
+export default function CellAction({ currentCategory, onAdd, onEdit, onDelete }: CellActionProps) {
 
+  const quickAddSubCategory = useBoolean();
   const quickEditCategory = useBoolean();
   const confirm = useBoolean();
 
   return (
     <>
+      <Tooltip title="Quick Add Sub Category" placement="top" arrow>
+        <IconButton color={quickAddSubCategory.value ? 'inherit' : 'default'} onClick={quickAddSubCategory.onTrue}
+                    disabled={currentCategory.depth > 1}>
+          <Iconify icon="mdi:add" />
+        </IconButton>
+      </Tooltip>
       <Tooltip title="Quick Edit" placement="top" arrow>
         <IconButton color={quickEditCategory.value ? 'inherit' : 'default'} onClick={quickEditCategory.onTrue}>
-          <Iconify icon="solar:pen-bold" />
+          <Iconify icon="mdi:edit" />
         </IconButton>
       </Tooltip>
       <Tooltip title="Delete" placement="top" arrow>
         <IconButton color={confirm.value ? 'inherit' : 'default'} onClick={confirm.onTrue}>
-          <Iconify icon="solar:trash-bin-trash-bold" />
+          <Iconify icon="mdi:trash-can-outline" />
         </IconButton>
       </Tooltip>
       <ConfirmDialog
@@ -45,10 +53,15 @@ export default function CellAction({ currentCategory, onDelete, onEdit }: CellAc
           </Button>
         }
       />
+      <CategoryQuickNewEditForm open={quickAddSubCategory.value}
+                                onClose={quickAddSubCategory.onFalse}
+                                parentCategory={currentCategory}
+                                onAdd={onAdd} />
       <CategoryQuickNewEditForm open={quickEditCategory.value}
                                 onClose={quickEditCategory.onFalse}
                                 currentCategory={currentCategory}
                                 onEdit={onEdit} />
+
     </>
   );
 }

@@ -6,12 +6,13 @@ import IconButton from '@mui/material/IconButton';
 import ListItemText from '@mui/material/ListItemText';
 import { ListItemSecondaryAction } from '@mui/material';
 
+import { useSnackbar } from 'src/components/snackbar';
+
 import Iconify from '../../../components/iconify';
 import { Category } from '../../../type/category';
 import axios, { endpoints } from '../../../utils/axios';
-import { useSnackbar } from '../../../components/snackbar';
 
-const fetchCategoryData = async (parentCategoryId?: string) => {
+const fetchCategoryListData = async (parentCategoryId?: string) => {
   const url = parentCategoryId ? `${endpoints.category}/${parentCategoryId}/subcategories` : `${endpoints.category}/subcategories`;
   return axios.get<Category []>(url).then(({ data }) => data.map((item) => ({
     ...item,
@@ -33,7 +34,7 @@ export function CategoryTreeSelect({ data, value = '', onSelect }: TreeSelectPro
   const [selectedValue, setSelectedValue] = useState(value);
 
   useEffect(() => {
-    fetchCategoryData().then(rootCategories => setTreeData(rootCategories));
+    fetchCategoryListData().then(rootCategories => setTreeData(rootCategories));
   }, []);
 
   // const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -47,7 +48,7 @@ export function CategoryTreeSelect({ data, value = '', onSelect }: TreeSelectPro
     // 查询treeData中的节点并增加subcategories
     const currentNodeRefInTreeNodeIndex = treeData.findIndex(node => node.id === id) as number;
     const currentNodeRefInTreeNode = treeData[currentNodeRefInTreeNodeIndex];
-    fetchCategoryData(id).then(childrenData => {
+    fetchCategoryListData(id).then(childrenData => {
       // currentNodeRefInTreeNode!.subCategories = childrenData;
       currentNodeRefInTreeNode!.childrenFetched = true;
       currentNodeRefInTreeNode!.isExpanded = true;
@@ -55,6 +56,7 @@ export function CategoryTreeSelect({ data, value = '', onSelect }: TreeSelectPro
       setTreeData([...treeData]);
     });
   };
+
   const isParentsExpanded = (id: string): boolean => {
     const node = treeData.find((item) => item.id === id)!;
     if (node?.depth === 0) {
@@ -63,6 +65,7 @@ export function CategoryTreeSelect({ data, value = '', onSelect }: TreeSelectPro
     const parentNode = treeData.find((item) => item.id === node!.parentId)!;
     return !!parentNode?.isExpanded && isParentsExpanded(parentNode.id!);
   };
+
   const handleToggle = (node: Category) => {
     if (hasChildren(node)) {
       if (node.childrenFetched) {
