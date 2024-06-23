@@ -38,7 +38,7 @@ const fetchCategoryListData = async (parentCategory?: Category) => {
 export default function CategoryListView() {
 
   const settings = useSettingsContext();
-  
+
   const { enqueueSnackbar } = useSnackbar();
 
   const quickNewCategory = useBoolean();
@@ -68,27 +68,31 @@ export default function CategoryListView() {
     });
   }, []);
 
-  const handleAddCategory = useCallback((newCategory: Category) => {
-    axios.post(endpoints.category, newCategory).then(() => {
-      fetchCategoryListData().then(categories => setTableTreeData(categories));
-      enqueueSnackbar('Create success!');
-    });
+  const handleAddCategory = useCallback(async (newCategory: Category) => {
+    await axios.post(endpoints.category, newCategory);
+    fetchCategoryListData().then(categories => setTableTreeData(categories));
+    enqueueSnackbar('Create success!');
   }, [enqueueSnackbar]);
 
-  const handleEditCategory = useCallback((id: string, newCategory: Category) => {
-    axios.put(`${endpoints.category}/${id}`, newCategory).then(() => {
-      fetchCategoryListData().then(categories => setTableTreeData(categories));
+  const handleEditCategory = useCallback(async (id: string, newCategory: Category) => {
+    await axios.put(`${endpoints.category}/${id}`, newCategory);
+    fetchCategoryListData().then(categories => {
+      setTableTreeData(categories);
       enqueueSnackbar('Update success!');
     });
+
   }, [enqueueSnackbar]);
 
-  const handleDeleteCategory = useCallback((id: string) => {
-    axios.delete(`${endpoints.category}/${id}`).then(() => {
-      fetchCategoryListData().then(categories => setTableTreeData(categories));
+  const handleDeleteCategory = useCallback(async (id: string) => {
+    await axios.delete(`${endpoints.category}/${id}`);
+    fetchCategoryListData().then(categories => {
+      setTableTreeData(categories);
       enqueueSnackbar('Delete success!');
     });
+
   }, [enqueueSnackbar]);
-  // const setDefaultExpandNode = ()=>{};
+
+  // todo:const setDefaultExpandNode = ()=>{};
   const handleToggle = useCallback((id: string) => {
     const rowIndex = tableTreeData.findIndex((r) => r.id === id)!;
     const row = tableTreeData[rowIndex];

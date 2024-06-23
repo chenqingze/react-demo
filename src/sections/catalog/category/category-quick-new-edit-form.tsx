@@ -24,8 +24,8 @@ type Props = {
   onClose: VoidFunction;
   currentCategory?: Category;
   parentCategory?: Category;
-  onAdd?: (newCategory: Category) => void;
-  onEdit?: (id: string, newCategory: Category) => void;
+  onAdd?: (newCategory: Category) => Promise<void>;
+  onEdit?: (id: string, newCategory: Category) => Promise<void>;
 };
 
 export default function CategoryQuickNewEditForm({
@@ -36,6 +36,7 @@ export default function CategoryQuickNewEditForm({
                                                    onAdd,
                                                    onEdit,
                                                  }: Props) {
+
   const NewCategorySchema = Yup.object().shape({
     name: Yup.string().required('Name is required'),
     description: Yup.string(),
@@ -64,6 +65,7 @@ export default function CategoryQuickNewEditForm({
 
   const {
     reset,
+    getValues,
     setValue,
     handleSubmit,
     formState: { isSubmitting },
@@ -73,23 +75,22 @@ export default function CategoryQuickNewEditForm({
     if (currentCategory) {
       reset(currentCategory);
     }
-    if (parentCategory) {
-      setValue('parentId', parentCategory.id);
-    }
+    setValue('parentId', parentCategory?.id || '');
   }, [currentCategory, parentCategory, reset, setValue]);
 
   const onSubmit = handleSubmit(async (data) => {
+    console.log('submit', data);
     try {
       if (currentCategory && onEdit) {
-        onEdit(currentCategory.id!, data as Category);
+        await onEdit(currentCategory.id!, data as Category);
       } else if (onAdd) {
-        onAdd(data as Category);
+        await onAdd(data as Category);
       } else {
         console.error('something went wrong');
       }
       reset();
       onClose();
-      // console.info('DATA', data);
+      console.info('DATA', data);
     } catch (error) {
       console.error(error);
     }
@@ -154,7 +155,8 @@ export default function CategoryQuickNewEditForm({
             <Button variant="outlined" onClick={onClose}>
               Cancel
             </Button>
-            <LoadingButton type="submit" variant="contained" loading={isSubmitting}>
+            <LoadingButton type="submit" variant="contained" loading={isSubmitting}
+                           onClick={() => console.log(isSubmitting, getValues())}>
               {currentCategory ? 'Update' : 'Save'}
             </LoadingButton>
           </Stack>

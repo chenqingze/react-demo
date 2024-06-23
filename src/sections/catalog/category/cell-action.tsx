@@ -10,8 +10,8 @@ import CategoryQuickNewEditForm from './category-quick-new-edit-form';
 
 interface CellActionProps {
   currentCategory: Category;
-  onAdd: (newCategory: Category) => void;
-  onEdit: (id: string, newCategory: Category) => void;
+  onAdd: (newCategory: Category) => Promise<void>;
+  onEdit: (id: string, newCategory: Category) => Promise<void>;
   onDelete: (id: string) => void;
 }
 
@@ -39,6 +39,15 @@ export default function CellAction({ currentCategory, onAdd, onEdit, onDelete }:
           <Iconify icon="mdi:trash-can-outline" />
         </IconButton>
       </Tooltip>
+
+      <CategoryQuickNewEditForm open={quickAddSubCategory.value}
+                                onClose={quickAddSubCategory.onFalse}
+                                parentCategory={currentCategory}
+                                onAdd={onAdd} />
+      <CategoryQuickNewEditForm open={quickEditCategory.value}
+                                onClose={quickEditCategory.onFalse}
+                                currentCategory={currentCategory}
+                                onEdit={onEdit} />
       <ConfirmDialog
         open={confirm.value}
         onClose={confirm.onFalse}
@@ -53,14 +62,6 @@ export default function CellAction({ currentCategory, onAdd, onEdit, onDelete }:
           </Button>
         }
       />
-      <CategoryQuickNewEditForm open={quickAddSubCategory.value}
-                                onClose={quickAddSubCategory.onFalse}
-                                parentCategory={currentCategory}
-                                onAdd={onAdd} />
-      <CategoryQuickNewEditForm open={quickEditCategory.value}
-                                onClose={quickEditCategory.onFalse}
-                                currentCategory={currentCategory}
-                                onEdit={onEdit} />
 
     </>
   );
