@@ -50,6 +50,9 @@ export const paths = {
       },
       productOption: {
         root: `${ROOTS.DASHBOARD}/catalog/product-option`,
+        new: `${ROOTS.DASHBOARD}/catalog/product-option/new`,
+        edit: (id: string) => `${ROOTS.DASHBOARD}/catalog/product-option/${id}/edit`,
+        details: (id: string) => `${ROOTS.DASHBOARD}/catalog/product-option/${id}`,
       },
     },
     customer: {

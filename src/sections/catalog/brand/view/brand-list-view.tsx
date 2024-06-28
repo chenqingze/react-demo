@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, ChangeEvent } from 'react';
 
 import Card from '@mui/material/Card';
 import Table from '@mui/material/Table';
@@ -16,10 +16,12 @@ import { Brand } from 'src/type/brand';
 
 import Iconify from 'src/components/iconify';
 import Scrollbar from 'src/components/scrollbar';
+import { useSnackbar } from 'src/components/snackbar';
 import { useSettingsContext } from 'src/components/settings';
 import CustomBreadcrumbs from 'src/components/custom-breadcrumbs';
-import { useTable, emptyRows, TableNoData, TableEmptyRows, TablePaginationCustom } from 'src/components/table';
+import { emptyRows, TableNoData, TableEmptyRows, TablePaginationCustom } from 'src/components/table';
 
+import { Page } from '../../../../type/page';
 import BrandTableRow from '../brand-table-row';
 import axios, { endpoints } from '../../../../utils/axios';
 import { useBoolean } from '../../../../hooks/use-boolean';
@@ -28,26 +30,69 @@ import BrandQuickNewEditForm from '../brand-quick-new-edit-form';
 export default function BrandListView() {
 
   const settings = useSettingsContext();
-
+  const { enqueueSnackbar } = useSnackbar();
   const quickNewBrand = useBoolean();
 
-  const table = useTable({ defaultRowsPerPage: 10 });
+  const [tablePage, setTablePage] = useState<Page<Brand>>({
+    content: [],
+    page: {
+      size: 5,
+      number: 0,
+      totalElements: 0,
+      totalPages: 0,
+    },
+  });
 
-  const [brandListData, setBrandListData] = useState<Brand[]>([]);
-
-  const fetchBrandListData = (pageNumber = 0, pageSize = 10) => axios.get(`${endpoints.brand}`, {
+  const fetchBrandListData = useCallback((pageNumber = 0, pageSize = 5) => axios.get(`${endpoints.brand}`, {
     params: {
       pageNumber,
       pageSize,
     },
-  })
-    .then(({ data }) => setBrandListData(data.content))
-    .catch(error => console.error('Error fetching data:', error));
+  }).then(({ data: { content, page: { size, number, totalElements, totalPages } } }) => setTablePage({
+    content,
+    page: {
+      size: Number(size),
+      number: Number(number),
+      totalElements: Number(totalElements),
+      totalPages: Number(totalPages),
+    },
+  })).catch(error => console.error('Error fetching data:', error)), []);
 
   useEffect(() => {
     fetchBrandListData();
-  }, []);
+  }, [fetchBrandListData]);
 
+  const onChangePage = useCallback((event: unknown, newPage: number) => {
+    fetchBrandListData(newPage, tablePage.page.size);
+  }, [fetchBrandListData, tablePage.page.size]);
+
+  const onChangeRowsPerPage = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const rowsPerPage = parseInt(event.target.value, 10);
+    fetchBrandListData(0, rowsPerPage);
+  }, [fetchBrandListData]);
+
+  const handleAddBrand = useCallback((brand: Brand) => {
+    axios.post(endpoints.brand, brand).then(() => fetchBrandListData(0, tablePage.page.size));
+    enqueueSnackbar('Create success!');
+  }, [enqueueSnackbar, fetchBrandListData, tablePage.page.size]);
+
+  const handleEditBrand = useCallback(async (id: string, brand: Brand) => {
+    axios.put(`${endpoints.brand}/${id}`, brand).then(({ data }) => {
+      const editBrandIndex = tablePage.content.findIndex(item => item.id === id);
+      const newTablePage = { ...tablePage };
+      newTablePage.content[editBrandIndex] = data;
+      setTablePage(newTablePage);
+    });
+    enqueueSnackbar('Update success!');
+  }, [enqueueSnackbar, tablePage]);
+
+  const handleDeleteBrand = useCallback(async (id: string) => {
+    await axios.delete(`${endpoints.brand}/${id}`);
+    const content = tablePage.content.filter(item => item.id !== id);
+    const newTablePage = { ...tablePage, content };
+    setTablePage(newTablePage);
+    enqueueSnackbar('Delete success!');
+  }, [enqueueSnackbar, tablePage]);
 
   return (
     <Container
@@ -95,7 +140,6 @@ export default function BrandListView() {
       >
         <TableContainer>
           <Scrollbar>
-
             <Table
               sx={{ minWidth: 750 }}
               aria-labelledby="tableTitle"
@@ -109,32 +153,29 @@ export default function BrandListView() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {brandListData.map(
+                {tablePage.content.map(
                   (row) =>
                     (<BrandTableRow row={row} key={row.id}
-                                    onSave={fetchBrandListData}
-                                    onDelete={fetchBrandListData} />),
+                                    onEditRow={handleEditBrand}
+                                    onDeleteRow={handleDeleteBrand} />),
                 )}
                 <TableEmptyRows
-                  height={table.dense ? 56 : 56 + 20}
-                  emptyRows={emptyRows(table.page, table.rowsPerPage, brandListData.length)}
+                  emptyRows={emptyRows(tablePage.page.number, tablePage.page.size, tablePage.page.totalElements)}
                 />
-                <TableNoData notFound={!brandListData.length} />
+                <TableNoData notFound={!tablePage.page.totalElements} />
               </TableBody>
             </Table>
           </Scrollbar>
         </TableContainer>
         <TablePaginationCustom
-          count={brandListData.length}
-          page={table.page}
-          rowsPerPage={table.rowsPerPage}
-          onPageChange={table.onChangePage}
-          onRowsPerPageChange={table.onChangeRowsPerPage}
-          // dense={table.dense}
-          // onChangeDense={table.onChangeDense}
+          count={tablePage.page.totalElements}
+          page={tablePage.page.number}
+          rowsPerPage={tablePage.page.size}
+          onPageChange={onChangePage}
+          onRowsPerPageChange={onChangeRowsPerPage}
+          dense={false}
         />
-        <BrandQuickNewEditForm open={quickNewBrand.value} onClose={quickNewBrand.onFalse} onSave={fetchBrandListData} />
-
+        <BrandQuickNewEditForm open={quickNewBrand.value} onClose={quickNewBrand.onFalse} onAdd={handleAddBrand} />
       </Card>
     </Container>
   );

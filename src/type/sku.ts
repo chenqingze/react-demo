@@ -1,5 +1,5 @@
-export const inventoryTypes = ['ALWAYS_AVAILABLE', 'UNAVAILABLE', 'CHECK_QUANTITY'] as const;
-export type InventoryType = typeof inventoryTypes[keyof typeof inventoryTypes];
+export const INVENTORY_TYPES = ['ALWAYS_AVAILABLE', 'UNAVAILABLE', 'CHECK_QUANTITY'] as const;
+export type InventoryType = typeof INVENTORY_TYPES[keyof typeof INVENTORY_TYPES];
 
 export type SkuAttribute = {
   id?: string;

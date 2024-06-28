@@ -15,6 +15,9 @@ const IndexPage = lazy(() => import('src/pages/dashboard/one'));
 const ProductListPage = lazy(() => import('src/pages/dashboard/catalog/product/list'));
 const BrandListPage = lazy(() => import('src/pages/dashboard/catalog/brand/list'));
 const CategoryListPage = lazy(() => import('src/pages/dashboard/catalog/category/list'));
+const ProductOptionListPage = lazy(() => import('src/pages/dashboard/catalog/product-option/list'));
+const ProductOptionCreatePage = lazy(() => import('src/pages/dashboard/catalog/product-option/new'));
+const ProductOptionEditPage = lazy(() => import('src/pages/dashboard/catalog/product-option/edit'));
 
 // ----------------------------------------------------------------------
 
@@ -60,6 +63,14 @@ export const dashboardRoutes = [
         path: 'catalog/brand',
         children: [
           { element: <BrandListPage />, index: true },
+        ],
+      },
+      {
+        path: 'catalog/product-option',
+        children: [
+          { element: <ProductOptionListPage />, index: true },
+          { path: 'new', element: <ProductOptionCreatePage /> },
+          { path: ':id/edit', element: <ProductOptionEditPage /> },
         ],
       },
       {

@@ -1,14 +1,14 @@
-export type OptionType = string | 'SELECT' | 'TEXTAREA' | 'BOOLEAN'
-
+export const PRODUCT_OPTION_TYPES = ['COLOR', 'SIZE', 'DATE', 'TEXT', 'TEXTAREA', 'BOOLEAN', 'INTEGER', 'INPUT', 'PRODUCT', 'SELECT'] as const;
+export type ProductOptionType = typeof PRODUCT_OPTION_TYPES[number];
 
 export type ProductOptionValue = {
   id?: string
 
-  attributeValue?: string
+  attributeValue: string
 
   displayOrder?: number
 
-  priceAdjustment?: number
+  priceAdjustment?: string
 
   productOption?: ProductOption
 }
@@ -18,9 +18,9 @@ export type ProductOption = {
 
   name?: string
 
-  type?: OptionType
+  type: ProductOptionType
 
-  attributeName?: string
+  attributeName: string
 
   label?: string
 

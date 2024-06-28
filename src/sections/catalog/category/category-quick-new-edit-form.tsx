@@ -79,7 +79,6 @@ export default function CategoryQuickNewEditForm({
   }, [currentCategory, parentCategory, reset, setValue]);
 
   const onSubmit = handleSubmit(async (data) => {
-    console.log('submit', data);
     try {
       if (currentCategory && onEdit) {
         await onEdit(currentCategory.id!, data as Category);

@@ -15,11 +15,9 @@ import DialogContent from '@mui/material/DialogContent';
 
 import { Brand } from 'src/type/brand';
 
-import { useSnackbar } from 'src/components/snackbar';
 import FormProvider, { RHFTextField, RHFUploadBox } from 'src/components/hook-form';
 
 import Image from '../../../components/image';
-import axios, { endpoints } from '../../../utils/axios';
 import RHFSwitch from '../../../components/hook-form/rhf-switch';
 
 
@@ -29,12 +27,11 @@ type Props = {
   open: boolean;
   onClose: VoidFunction;
   currentBrand?: Brand;
-  onSave?: VoidFunction;
+  onAdd?: (brand: Brand) => void;
+  onEdit?: (id: string, brand: Brand) => void;
 };
 
-export default function BrandQuickNewEditForm({ currentBrand, open, onClose, onSave }: Props) {
-
-  const { enqueueSnackbar } = useSnackbar();
+export default function BrandQuickNewEditForm({ currentBrand, open, onClose, onAdd, onEdit }: Props) {
 
   const NewBrandSchema = Yup.object().shape({
     name: Yup.string().required('Name is required'),
@@ -68,23 +65,20 @@ export default function BrandQuickNewEditForm({ currentBrand, open, onClose, onS
 
   useEffect(() => {
     if (currentBrand) {
-      reset(currentBrand);
+      reset(defaultValues);
     }
-  }, [currentBrand, reset]);
+  }, [currentBrand, defaultValues, reset]);
 
   const onSubmit = handleSubmit(async (data) => {
     try {
-      if (currentBrand) {
-        await axios.put(`${endpoints.brand}/${currentBrand.id}`, data);
-      } else {
-        await axios.post(endpoints.brand, data);
+      if (currentBrand && onEdit) {
+        onEdit(currentBrand.id!, data as Brand);
       }
-      if (onSave) {
-        onSave();
+      if (!currentBrand && onAdd) {
+        onAdd(data as Brand);
       }
       reset();
       onClose();
-      enqueueSnackbar(`${currentBrand ? 'Update' : 'Create'} success!`);
       console.info('DATA', data);
     } catch (error) {
       console.error(error);
