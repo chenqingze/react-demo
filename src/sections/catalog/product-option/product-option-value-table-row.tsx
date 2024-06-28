@@ -8,38 +8,37 @@ import { ProductOptionValue } from 'src/type/product-option';
 
 import Iconify from '../../../components/iconify';
 import { useBoolean } from '../../../hooks/use-boolean';
+import RHFEditableTableCell from './rhf-editable-table-cell';
 import { ConfirmDialog } from '../../../components/custom-dialog';
-import ProductOptionValueQuickNewEditForm from './product-option-value-quick-new-edit-form';
 
 type Props = {
   row: ProductOptionValue;
-  onEditRow?: (id: string, productOptionValue: ProductOptionValue) => void;
-  onDeleteRow: (id: string) => void;
+  index: number;
+  onEditRow?: (index: number, productOptionValue: ProductOptionValue) => void;
+  onDeleteRow: (index: number, id: string) => void;
 };
 
-export function ProductOptionValueTableRow({ row, onEditRow, onDeleteRow }: Props) {
+export function ProductOptionValueTableRow({ row, index, onEditRow, onDeleteRow }: Props) {
 
-  const { id, attributeValue, priceAdjustment, displayOrder } = row;
+  const { id, displayOrder } = row;
 
   const confirm = useBoolean();
-
-  const quickEditProductOptionValue = useBoolean();
-
 
   return (<>
     <TableRow hover>
       <TableCell sx={{ whiteSpace: 'nowrap' }}>{id}</TableCell>
-      <TableCell sx={{ whiteSpace: 'nowrap' }}>{attributeValue}</TableCell>
-      <TableCell sx={{ whiteSpace: 'nowrap' }}>{priceAdjustment}</TableCell>
+      <RHFEditableTableCell sx={{ whiteSpace: 'nowrap' }}
+                            name={`allowedValues.${index}.attributeValue`}
+                            textFieldProps={{ size: 'small' }}
+
+      />
+      <RHFEditableTableCell sx={{ whiteSpace: 'nowrap' }}
+                            name={`allowedValues.${index}.priceAdjustment`}
+                            textFieldProps={{ size: 'small' }}
+      />
       <TableCell sx={{ whiteSpace: 'nowrap' }}>{displayOrder}</TableCell>
 
       <TableCell align="right" sx={{ px: 1, whiteSpace: 'nowrap' }}>
-        <Tooltip title="Quick Edit" placement="top" arrow>
-          <IconButton color={quickEditProductOptionValue.value ? 'inherit' : 'default'}
-                      onClick={quickEditProductOptionValue.onTrue}>
-            <Iconify icon="mdi:edit" />
-          </IconButton>
-        </Tooltip>
         <Tooltip title="Delete" placement="top" arrow>
           <IconButton color="error" onClick={confirm.onTrue}>
             <Iconify icon="mdi:trash-can-outline" />
@@ -48,18 +47,13 @@ export function ProductOptionValueTableRow({ row, onEditRow, onDeleteRow }: Prop
       </TableCell>
     </TableRow>
 
-    <ProductOptionValueQuickNewEditForm currentProductOptionValue={row}
-                                        open={quickEditProductOptionValue.value}
-                                        onClose={quickEditProductOptionValue.onFalse}
-                                        onEdit={onEditRow} />
-
     <ConfirmDialog
       open={confirm.value}
       onClose={confirm.onFalse}
       title="Delete"
       content="Are you sure want to delete?"
       action={
-        <Button variant="contained" color="error" onClick={() => onDeleteRow(id!)}>
+        <Button variant="contained" color="error" onClick={() => onDeleteRow(index, id!)}>
           Delete
         </Button>
       }

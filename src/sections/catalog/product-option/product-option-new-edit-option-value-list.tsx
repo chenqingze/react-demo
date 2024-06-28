@@ -13,39 +13,40 @@ import TableContainer from '@mui/material/TableContainer';
 import { ProductOption, ProductOptionValue } from 'src/type/product-option';
 
 import Iconify from 'src/components/iconify';
+import { useSnackbar } from 'src/components/snackbar';
 
-import { useBoolean } from '../../../hooks/use-boolean';
 import { TableNoData } from '../../../components/table';
+import axios, { endpoints } from '../../../utils/axios';
 import Scrollbar from '../../../components/scrollbar/scrollbar';
 import { ProductOptionValueTableRow } from './product-option-value-table-row';
-import ProductOptionValueQuickNewEditForm from './product-option-value-quick-new-edit-form';
 
 export function ProductOptionNewEditOptionValueList() {
 
-  const quickNewProductOptionValue = useBoolean();
-
   const { control } = useFormContext<ProductOption>();
-  const { fields: rows, remove, update, append } = useFieldArray<ProductOption, 'allowedValues'>({
+  const { fields: rows, remove, update, append } = useFieldArray<ProductOption, 'allowedValues', 'optionValueId'>({
     control,
     name: 'allowedValues',
+    keyName: 'optionValueId',
   });
 
-  const getIndexByRowId = useCallback((id: string | number) => rows ? rows.findIndex((r) => r.id === id) : -1, [rows]);
+  // const getIndexByRowId = useCallback((id: string | number) => rows ? rows.findIndex((r) => r.id === id) : -1, [rows]);
 
-  const handleEditProductOptionValue = useCallback((id: string, data: ProductOptionValue) => {
-    const index = getIndexByRowId(id);
+  const { enqueueSnackbar } = useSnackbar();
+
+  const handleEditProductOptionValue = useCallback((index: number, data: ProductOptionValue) => {
     update(index, data);
-  }, [getIndexByRowId, update]);
+  }, [update]);
 
-  const handleAddProductOptionValue = useCallback((data: ProductOptionValue) => {
-    append(data);
+  const handleAddProductOptionValue = useCallback(() => {
+    append({ attributeValue: '', displayOrder: 0, priceAdjustment: '' });
   }, [append]);
 
-  const handleDeleteProductOptionValue = useCallback((id: string) => {
-    const index = getIndexByRowId(id);
+  const handleDeleteProductOptionValue = useCallback(async (index: number, id: string) => {
+    await axios.delete(`${endpoints.productOption}/${index}`);
     remove(index);
-    console.info('DELETE', id);
-  }, [getIndexByRowId, remove]);
+    console.info('DELETE');
+    enqueueSnackbar('Delete successfully.');
+  }, [enqueueSnackbar, remove]);
 
   return (<>
     <CardHeader title="Option Values"
@@ -56,7 +57,7 @@ export function ProductOptionNewEditOptionValueList() {
                     size="small"
                     color="primary"
                     startIcon={<Iconify icon="mdi:add" />}
-                    onClick={quickNewProductOptionValue.onTrue}
+                    onClick={handleAddProductOptionValue}
                   >
                     New Option Value
                   </Button>}
@@ -79,8 +80,8 @@ export function ProductOptionNewEditOptionValueList() {
           </TableHead>
           <TableBody>
             {rows.map(
-              (row) =>
-                (<ProductOptionValueTableRow row={row} key={row.id}
+              (row, index) =>
+                (<ProductOptionValueTableRow key={row.id} row={row} index={index}
                                              onEditRow={handleEditProductOptionValue}
                                              onDeleteRow={handleDeleteProductOptionValue} />),
             )}
@@ -89,8 +90,5 @@ export function ProductOptionNewEditOptionValueList() {
         </Table>
       </Scrollbar>
     </TableContainer>}
-    <ProductOptionValueQuickNewEditForm open={quickNewProductOptionValue.value}
-                                        onClose={quickNewProductOptionValue.onFalse}
-                                        onAdd={handleAddProductOptionValue} />
   </>);
 }

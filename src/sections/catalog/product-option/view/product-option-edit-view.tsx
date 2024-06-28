@@ -32,7 +32,7 @@ export default function ProductOptionEditView({ id }: Props) {
         links={[
           { name: 'Dashboard', href: paths.dashboard.root },
           {
-            name: 'Product',
+            name: 'Product Option',
             href: paths.dashboard.catalog.productOption.root,
           },
           { name: currentProductOption?.name },

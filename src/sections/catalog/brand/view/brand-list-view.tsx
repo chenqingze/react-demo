@@ -21,7 +21,7 @@ import { useSettingsContext } from 'src/components/settings';
 import CustomBreadcrumbs from 'src/components/custom-breadcrumbs';
 import { emptyRows, TableNoData, TableEmptyRows, TablePaginationCustom } from 'src/components/table';
 
-import { Page } from '../../../../type/page';
+import Page from '../../../../type/page';
 import BrandTableRow from '../brand-table-row';
 import axios, { endpoints } from '../../../../utils/axios';
 import { useBoolean } from '../../../../hooks/use-boolean';
@@ -43,7 +43,7 @@ export default function BrandListView() {
     },
   });
 
-  const fetchBrandListData = useCallback((pageNumber = 0, pageSize = 5) => axios.get(`${endpoints.brand}`, {
+  const fetchBrandListData = useCallback((pageNumber = 0, pageSize = 5) => axios.get(endpoints.brand, {
     params: {
       pageNumber,
       pageSize,

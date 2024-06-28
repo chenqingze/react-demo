@@ -17,7 +17,7 @@ import Scrollbar from 'src/components/scrollbar';
 import { useSnackbar } from 'src/components/snackbar';
 import { emptyRows, TableNoData, TableEmptyRows, TablePaginationCustom } from 'src/components/table';
 
-import { Page } from '../../../../type/page';
+import Page from '../../../../type/page';
 import { paths } from '../../../../routes/paths';
 import Iconify from '../../../../components/iconify';
 import axios, { endpoints } from '../../../../utils/axios';
