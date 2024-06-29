@@ -20,7 +20,7 @@ import axios, { endpoints } from '../../../utils/axios';
 import Scrollbar from '../../../components/scrollbar/scrollbar';
 import { ProductOptionValueTableRow } from './product-option-value-table-row';
 
-export function ProductOptionNewEditOptionValueList() {
+export function ProductOptionNewEditOptionValueList({ productOptionId }: { productOptionId?: string }) {
 
   const { control } = useFormContext<ProductOption>();
   const { fields: rows, remove, update, append } = useFieldArray<ProductOption, 'allowedValues', 'optionValueId'>({
@@ -33,20 +33,22 @@ export function ProductOptionNewEditOptionValueList() {
 
   const { enqueueSnackbar } = useSnackbar();
 
-  const handleEditProductOptionValue = useCallback((index: number, data: ProductOptionValue) => {
-    update(index, data);
-  }, [update]);
-
   const handleAddProductOptionValue = useCallback(() => {
     append({ attributeValue: '', displayOrder: 0, priceAdjustment: '' });
   }, [append]);
 
+  const handleEditProductOptionValue = useCallback((index: number, data: ProductOptionValue) => {
+    update(index, data);
+  }, [update]);
+
   const handleDeleteProductOptionValue = useCallback(async (index: number, id: string) => {
-    await axios.delete(`${endpoints.productOption}/${index}`);
+    if (productOptionId && id) {
+      await axios.delete(`${endpoints.productOption}/${productOptionId}${endpoints.productOptionValue}/${id}`);
+    }
     remove(index);
     console.info('DELETE');
     enqueueSnackbar('Delete successfully.');
-  }, [enqueueSnackbar, remove]);
+  }, [enqueueSnackbar, productOptionId, remove]);
 
   return (<>
     <CardHeader title="Option Values"

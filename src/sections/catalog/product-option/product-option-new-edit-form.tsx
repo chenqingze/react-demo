@@ -14,7 +14,7 @@ import LoadingButton from '@mui/lab/LoadingButton';
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
-import { ProductOption, ProductOptionValue, PRODUCT_OPTION_TYPES } from 'src/type/product-option';
+import { ProductOption, ProductOptionType, PRODUCT_OPTION_TYPES } from 'src/type/product-option';
 
 import { useSnackbar } from 'src/components/snackbar';
 import FormProvider, { RHFTextField } from 'src/components/hook-form';
@@ -40,9 +40,17 @@ export default function ProductOptionNewEditForm({ currentProductOption }: Props
     attributeName: Yup.string().required('Name is required'),
     required: Yup.boolean(),
     useInSkuGeneration: Yup.boolean(),
-    displayOrder: Yup.number(),
-    type: Yup.string(),
-    allowedValues: Yup.array<ProductOptionValue>(),
+    displayOrder: Yup.number().default(0),
+    type: Yup.string<ProductOptionType>().nullable(),
+    allowedValues: Yup.lazy(() =>
+      Yup.array().of(
+        Yup.object({
+          attributeValue: Yup.string().required('Attribute Value is required'),
+          displayOrder: Yup.number(),
+          priceAdjustment: Yup.mixed().nullable(),
+        }),
+      ).default([]),
+    ),
   });
 
   const defaultValues = useMemo(
@@ -53,7 +61,7 @@ export default function ProductOptionNewEditForm({ currentProductOption }: Props
       required: currentProductOption?.required || true,
       useInSkuGeneration: currentProductOption?.useInSkuGeneration || true,
       displayOrder: currentProductOption?.displayOrder || 0,
-      type: currentProductOption?.type || '',
+      type: currentProductOption?.type || null,
       allowedValues: currentProductOption?.allowedValues || [],
     }),
     [currentProductOption],
@@ -126,7 +134,7 @@ export default function ProductOptionNewEditForm({ currentProductOption }: Props
           <RHFSwitch name="useInSkuGeneration" label="Use In Sku Generation" />
         </Box>
         <Divider sx={{ borderStyle: 'dashed' }} />
-        <ProductOptionNewEditOptionValueList />
+        <ProductOptionNewEditOptionValueList productOptionId={currentProductOption?.id} />
       </Card>
       <Stack alignItems="flex-end" spacing={2} sx={{ mt: 3 }}>
         <LoadingButton type="submit" variant="contained" loading={isSubmitting}>

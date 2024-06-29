@@ -33,6 +33,7 @@ export const endpoints = {
   },
   product: '/products',
   productOption: '/product-options',
+  productOptionValue: '/product-option-values',
   sku: '/skus',
   category: '/categories',
   brand: '/brands',
