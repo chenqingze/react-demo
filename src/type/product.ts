@@ -12,26 +12,25 @@ export type ProductAttribute = {
 }
 
 export type Product = {
-  id?: string
-  name?: string
-  manufacturer?: string
-
-  defaultSku?: Sku
-
-  useDefaultSkuInInventory?: boolean
-
-  skus?: Sku[]
-
-  additionalSkus?: Sku[]
-
+  id?: string;
+  name?: string;
+  imageUrls?: string[];
+  description?: string;
+  longDescription?: string;
+  manufacturer?: string;
+  retailPrice?: string;
+  salePrice?: string;
+  useDefaultSkuInInventory?: boolean;
+  brand?: Brand
+  brandId: string;
+  skus?: Sku[];
   // allParentCategoryXrefs?: CategoryProductXref[]
-
-  productAttributes?: ProductAttribute[]
+  allCategoryIds: string[];
+  productAttributes?: ProductAttribute[];
 
   // productOptions?: ProductOptionXref[]
 
   productOptionMap?: { [x: string]: any }
 
-  brand?: Brand
 };
 

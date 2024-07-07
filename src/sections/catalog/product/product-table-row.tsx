@@ -4,46 +4,38 @@ import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
 import IconButton from '@mui/material/IconButton';
 
-import { useBoolean } from 'src/hooks/use-boolean';
-
+import { Product } from '../../../type/product';
 import Iconify from '../../../components/iconify';
-import { ProductOption } from '../../../type/product-option';
+import { useBoolean } from '../../../hooks/use-boolean';
 import { ConfirmDialog } from '../../../components/custom-dialog';
 
 type Props = {
-  row: ProductOption;
+  row: Product;
   onEditRow: (id: string) => void;
   onDeleteRow: (id: string) => Promise<void>;
 };
 
-export default function ProductOptionTableRow({ row, onEditRow, onDeleteRow }: Props) {
-
-  const { id, name, type, attributeName, label, required, useInSkuGeneration, displayOrder } = row;
+export function ProductTableRow({ row, onEditRow, onDeleteRow }: Props) {
+  const {
+    id,
+    name,
+    manufacturer,
+    useDefaultSkuInInventory,
+  } = row;
 
   const confirm = useBoolean();
-
   return (
     <>
       <TableRow hover>
 
         <TableCell sx={{ whiteSpace: 'nowrap' }}>{name}</TableCell>
 
-        <TableCell sx={{ whiteSpace: 'nowrap' }}>{type}</TableCell>
-
-        <TableCell sx={{ whiteSpace: 'nowrap' }}>{attributeName}</TableCell>
-
-        <TableCell sx={{ whiteSpace: 'nowrap' }}>{label}</TableCell>
+        <TableCell sx={{ whiteSpace: 'nowrap' }}>{manufacturer}</TableCell>
 
         <TableCell sx={{ whiteSpace: 'nowrap' }}>
-          {required ? <Iconify icon="mdi:tick" /> : <Iconify icon="mdi:close" />}
+          {useDefaultSkuInInventory ? <Iconify icon="mdi:tick" /> : <Iconify icon="mdi:close" />}
         </TableCell>
 
-        <TableCell sx={{ whiteSpace: 'nowrap' }}>
-          {useInSkuGeneration ? <Iconify icon="mdi:tick" /> : <Iconify icon="mdi:close" />}
-        </TableCell>
-
-        <TableCell sx={{ whiteSpace: 'nowrap' }}>{displayOrder}</TableCell>
-        
         <TableCell align="right" sx={{ px: 1, whiteSpace: 'nowrap' }}>
           <Tooltip title="Edit" placement="top" arrow>
             <IconButton onClick={() => onEditRow(`${id}`)}>

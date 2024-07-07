@@ -70,6 +70,7 @@ export default function ProductOptionListView() {
     const rowsPerPage = parseInt(event.target.value, 10);
     fetchProductOptionListData(0, rowsPerPage);
   }, [fetchProductOptionListData]);
+
   const handleEditRow = useCallback(
     (id: string) => {
       router.push(paths.dashboard.catalog.productOption.edit(id));
